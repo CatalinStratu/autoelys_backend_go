@@ -1,0 +1,135 @@
+basePath: /
+definitions:
+  handlers.ErrorResponse:
+    description: Error response
+    properties:
+      errors:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
+  handlers.RegisterRequest:
+    description: User registration request payload
+    properties:
+      accepted_terms:
+        example: true
+        type: boolean
+      email:
+        example: john@example.com
+        type: string
+      first_name:
+        example: John
+        minLength: 2
+        type: string
+      last_name:
+        example: Doe
+        minLength: 2
+        type: string
+      password:
+        example: Password123
+        type: string
+      password_confirmation:
+        example: Password123
+        type: string
+      phone:
+        example: "+40712345678"
+        type: string
+    required:
+    - accepted_terms
+    - email
+    - first_name
+    - last_name
+    - password
+    - password_confirmation
+    type: object
+  handlers.RegisterResponse:
+    description: User registration response
+    properties:
+      message:
+        example: Account created successfully.
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      user:
+        $ref: '#/definitions/handlers.UserData'
+    type: object
+  handlers.UserData:
+    description: User data
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      first_name:
+        example: John
+        type: string
+      id:
+        example: 1
+        type: integer
+      last_name:
+        example: Doe
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@autoelys.com
+    name: API Support
+  description: Backend API for AutoElys application
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: AutoElys Backend API
+  version: "1.0"
+paths:
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account with email and password
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Account created successfully
+          schema:
+            $ref: '#/definitions/handlers.RegisterResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "429":
+          description: Too many requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - Authentication
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
