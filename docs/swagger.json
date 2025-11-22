@@ -172,6 +172,67 @@
                         }
                     }
                 }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the authenticated user's profile information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Update user profile",
+                "parameters": [
+                    {
+                        "description": "Profile update details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.UpdateProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/api/auth/register": {
@@ -430,6 +491,39 @@
                 "token": {
                     "type": "string",
                     "example": "a1b2c3d4e5f6..."
+                }
+            }
+        },
+        "handlers.UpdateProfileRequest": {
+            "description": "Update profile request payload",
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "example": "John"
+                },
+                "last_name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "example": "Doe"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "+40712345678"
+                }
+            }
+        },
+        "handlers.UpdateProfileResponse": {
+            "description": "Update profile response",
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Profile updated successfully."
+                },
+                "user": {
+                    "$ref": "#/definitions/handlers.UserData"
                 }
             }
         },

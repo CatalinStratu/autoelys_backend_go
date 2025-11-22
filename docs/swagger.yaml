@@ -107,6 +107,30 @@ definitions:
     - password_confirmation
     - token
     type: object
+  handlers.UpdateProfileRequest:
+    description: Update profile request payload
+    properties:
+      first_name:
+        example: John
+        minLength: 2
+        type: string
+      last_name:
+        example: Doe
+        minLength: 2
+        type: string
+      phone:
+        example: "+40712345678"
+        type: string
+    type: object
+  handlers.UpdateProfileResponse:
+    description: Update profile response
+    properties:
+      message:
+        example: Profile updated successfully.
+        type: string
+      user:
+        $ref: '#/definitions/handlers.UserData'
+    type: object
   handlers.UserData:
     description: User data
     properties:
@@ -242,6 +266,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Get current user profile
+      tags:
+      - Authentication
+    put:
+      consumes:
+      - application/json
+      description: Update the authenticated user's profile information
+      parameters:
+      - description: Profile update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated successfully
+          schema:
+            $ref: '#/definitions/handlers.UpdateProfileResponse'
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user profile
       tags:
       - Authentication
   /api/auth/register:

@@ -96,6 +96,7 @@ func main() {
 			auth.POST("/forgot-password", rateLimiter.Limit(), authHandler.ForgotPassword)
 			auth.POST("/reset-password", rateLimiter.Limit(), authHandler.ResetPassword)
 			auth.GET("/me", middleware.AuthRequired(), authHandler.GetMe)
+			auth.PUT("/me", middleware.AuthRequired(), authHandler.UpdateProfile)
 		}
 	}
 

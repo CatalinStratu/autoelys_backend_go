@@ -159,6 +159,16 @@ func (r *UserRepository) UpdatePassword(userID uint64, hashedPassword string) er
 	return err
 }
 
+func (r *UserRepository) UpdateProfile(user *models.User) error {
+	query := `
+		UPDATE users
+		SET first_name = ?, last_name = ?, phone = ?, updated_at = NOW()
+		WHERE id = ?
+	`
+	_, err := r.db.Exec(query, user.FirstName, user.LastName, user.Phone, user.ID)
+	return err
+}
+
 func TimePtr(t time.Time) *time.Time {
 	return &t
 }

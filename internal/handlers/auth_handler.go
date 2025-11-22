@@ -106,6 +106,21 @@ type UserProfileResponse struct {
 	User UserData `json:"user"`
 }
 
+// UpdateProfileRequest represents the update profile payload
+// @Description Update profile request payload
+type UpdateProfileRequest struct {
+	FirstName string `json:"first_name" validate:"omitempty,min=2" example:"John"`
+	LastName  string `json:"last_name" validate:"omitempty,min=2" example:"Doe"`
+	Phone     string `json:"phone" validate:"omitempty,phone_e164" example:"+40712345678"`
+}
+
+// UpdateProfileResponse represents the update profile response
+// @Description Update profile response
+type UpdateProfileResponse struct {
+	Message string   `json:"message" example:"Profile updated successfully."`
+	User    UserData `json:"user"`
+}
+
 // Register godoc
 // @Summary Register a new user
 // @Description Register a new user account with email and password
@@ -417,6 +432,76 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	}
 
 	response := UserProfileResponse{
+		User: UserData{
+			UUID:      user.UUID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     user.Email,
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateProfile godoc
+// @Summary Update user profile
+// @Description Update the authenticated user's profile information
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body UpdateProfileRequest true "Profile update details"
+// @Success 200 {object} UpdateProfileResponse "Profile updated successfully"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 422 {object} ErrorResponse "Validation error"
+// @Router /api/auth/me [put]
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		validationErrors := formatValidationErrors(err.(validator.ValidationErrors))
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": validationErrors})
+		return
+	}
+
+	user, err := h.userRepo.FindByID(userID.(uint64))
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	if req.FirstName != "" {
+		user.FirstName = req.FirstName
+	}
+	if req.LastName != "" {
+		user.LastName = req.LastName
+	}
+	if req.Phone != "" {
+		user.Phone = &req.Phone
+	}
+
+	if err := h.userRepo.UpdateProfile(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	response := UpdateProfileResponse{
+		Message: "Profile updated successfully.",
 		User: UserData{
 			UUID:      user.UUID,
 			FirstName: user.FirstName,
