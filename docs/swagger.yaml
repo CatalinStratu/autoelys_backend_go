@@ -10,6 +10,40 @@ definitions:
           type: array
         type: object
     type: object
+  handlers.ForgotPasswordRequest:
+    description: Forgot password request payload
+    properties:
+      email:
+        example: john@example.com
+        type: string
+    required:
+    - email
+    type: object
+  handlers.LoginRequest:
+    description: User login request payload
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: Password123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.LoginResponse:
+    description: User login response
+    properties:
+      message:
+        example: Login successful.
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      user:
+        $ref: '#/definitions/handlers.UserData'
+    type: object
   handlers.RegisterRequest:
     description: User registration request payload
     properties:
@@ -56,6 +90,23 @@ definitions:
       user:
         $ref: '#/definitions/handlers.UserData'
     type: object
+  handlers.ResetPasswordRequest:
+    description: Reset password request payload
+    properties:
+      password:
+        example: NewPassword123
+        type: string
+      password_confirmation:
+        example: NewPassword123
+        type: string
+      token:
+        example: a1b2c3d4e5f6...
+        type: string
+    required:
+    - password
+    - password_confirmation
+    - token
+    type: object
   handlers.UserData:
     description: User data
     properties:
@@ -85,6 +136,78 @@ info:
   title: AutoElys Backend API
   version: "1.0"
 paths:
+  /api/auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send password reset email to user
+      parameters:
+      - description: Email address
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reset email sent
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "429":
+          description: Too many requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request password reset
+      tags:
+      - Authentication
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/handlers.LoginResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "429":
+          description: Too many requests
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - Authentication
   /api/auth/register:
     post:
       consumes:
@@ -121,6 +244,40 @@ paths:
               type: string
             type: object
       summary: Register a new user
+      tags:
+      - Authentication
+  /api/auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using reset token
+      parameters:
+      - description: Reset token and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successful
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid or expired token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Reset password with token
       tags:
       - Authentication
 schemes:

@@ -4,6 +4,7 @@ import (
 	"autoelys_backend/internal/auth"
 	"autoelys_backend/internal/models"
 	"autoelys_backend/internal/repository"
+	"autoelys_backend/internal/services"
 	"errors"
 	"net/http"
 	"strings"
@@ -14,14 +15,23 @@ import (
 )
 
 type AuthHandler struct {
-	userRepo  *repository.UserRepository
-	validator *validator.Validate
+	userRepo     *repository.UserRepository
+	passwordRepo *repository.PasswordResetRepository
+	emailService *services.EmailService
+	validator    *validator.Validate
 }
 
-func NewAuthHandler(userRepo *repository.UserRepository, validate *validator.Validate) *AuthHandler {
+func NewAuthHandler(
+	userRepo *repository.UserRepository,
+	passwordRepo *repository.PasswordResetRepository,
+	emailService *services.EmailService,
+	validate *validator.Validate,
+) *AuthHandler {
 	return &AuthHandler{
-		userRepo:  userRepo,
-		validator: validate,
+		userRepo:     userRepo,
+		passwordRepo: passwordRepo,
+		emailService: emailService,
+		validator:    validate,
 	}
 }
 
@@ -58,6 +68,35 @@ type UserData struct {
 // @Description Error response
 type ErrorResponse struct {
 	Errors map[string][]string `json:"errors"`
+}
+
+// LoginRequest represents the login payload
+// @Description User login request payload
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email" example:"john@example.com"`
+	Password string `json:"password" validate:"required" example:"Password123"`
+}
+
+// LoginResponse represents the successful login response
+// @Description User login response
+type LoginResponse struct {
+	Message string   `json:"message" example:"Login successful."`
+	User    UserData `json:"user"`
+	Token   string   `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+}
+
+// ForgotPasswordRequest represents the forgot password payload
+// @Description Forgot password request payload
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email" example:"john@example.com"`
+}
+
+// ResetPasswordRequest represents the reset password payload
+// @Description Reset password request payload
+type ResetPasswordRequest struct {
+	Token                string `json:"token" validate:"required" example:"a1b2c3d4e5f6..."`
+	Password             string `json:"password" validate:"required,strong_password" example:"NewPassword123"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password" example:"NewPassword123"`
 }
 
 // Register godoc
@@ -154,6 +193,192 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, response)
+}
+
+// Login godoc
+// @Summary Login user
+// @Description Authenticate user with email and password
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} LoginResponse "Login successful"
+// @Failure 401 {object} map[string]string "Invalid credentials"
+// @Failure 422 {object} ErrorResponse "Validation error"
+// @Failure 429 {object} map[string]string "Too many requests"
+// @Router /api/auth/login [post]
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		errors := formatValidationErrors(err.(validator.ValidationErrors))
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": errors})
+		return
+	}
+
+	user, err := h.userRepo.FindByEmail(req.Email)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	if !user.Active {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Account is inactive"})
+		return
+	}
+
+	if !auth.CheckPassword(req.Password, user.PasswordHash) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	token, err := auth.GenerateToken(user.ID, user.Email, user.RoleID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	response := LoginResponse{
+		Message: "Login successful.",
+		User: UserData{
+			ID:        user.ID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     user.Email,
+		},
+		Token: token,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// ForgotPassword godoc
+// @Summary Request password reset
+// @Description Send password reset email to user
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body ForgotPasswordRequest true "Email address"
+// @Success 200 {object} map[string]string "Reset email sent"
+// @Failure 422 {object} ErrorResponse "Validation error"
+// @Failure 429 {object} map[string]string "Too many requests"
+// @Router /api/auth/forgot-password [post]
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		validationErrors := formatValidationErrors(err.(validator.ValidationErrors))
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": validationErrors})
+		return
+	}
+
+	user, err := h.userRepo.FindByEmail(req.Email)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "If the email exists, a password reset link has been sent.",
+		})
+		return
+	}
+
+	if !user.Active {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "If the email exists, a password reset link has been sent.",
+		})
+		return
+	}
+
+	_ = h.passwordRepo.DeleteUserTokens(user.ID)
+
+	resetToken, err := h.passwordRepo.Create(user.ID, 1)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	if err := h.emailService.SendPasswordResetEmail(user.Email, resetToken.Token); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send reset email"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "If the email exists, a password reset link has been sent.",
+	})
+}
+
+// ResetPassword godoc
+// @Summary Reset password with token
+// @Description Reset user password using reset token
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body ResetPasswordRequest true "Reset token and new password"
+// @Success 200 {object} map[string]string "Password reset successful"
+// @Failure 400 {object} map[string]string "Invalid or expired token"
+// @Failure 422 {object} ErrorResponse "Validation error"
+// @Router /api/auth/reset-password [post]
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		validationErrors := formatValidationErrors(err.(validator.ValidationErrors))
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": validationErrors})
+		return
+	}
+
+	resetToken, err := h.passwordRepo.ValidateToken(req.Token)
+	if err != nil {
+		if errors.Is(err, repository.ErrInvalidToken) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired reset token"})
+			return
+		}
+		if errors.Is(err, repository.ErrTokenAlreadyUsed) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Reset token has already been used"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	user, err := h.userRepo.FindByID(resetToken.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
+		return
+	}
+
+	hashedPassword, err := auth.HashPassword(req.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	if err := h.userRepo.UpdatePassword(user.ID, hashedPassword); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	if err := h.passwordRepo.MarkAsUsed(resetToken.ID); err != nil {
+		// Log but don't fail
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Password has been reset successfully. You can now login with your new password.",
+	})
 }
 
 func stringPtr(s string) *string {

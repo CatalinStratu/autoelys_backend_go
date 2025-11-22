@@ -73,6 +73,24 @@ POST /api/auth/register
 }
 ```
 
+#### Login
+```bash
+POST /api/auth/login
+```
+
+**Request Body**:
+```json
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "phone": "+40712345678",
+  "password": "Password123",
+  "password_confirmation": "Password123",
+  "accepted_terms": true
+}
+```
+
 **Success Response (201)**:
 ```json
 {
@@ -87,12 +105,70 @@ POST /api/auth/register
 }
 ```
 
-**Validation Error (422)**:
+#### Login
+```bash
+POST /api/auth/login
+```
+
+**Request Body**:
 ```json
 {
-  "errors": {
-    "email": ["The email is already taken."]
-  }
+  "email": "john@example.com",
+  "password": "Password123"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "message": "Login successful.",
+  "user": {
+    "id": 1,
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### Forgot Password
+```bash
+POST /api/auth/forgot-password
+```
+
+**Request Body**:
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "message": "If the email exists, a password reset link has been sent."
+}
+```
+
+#### Reset Password
+```bash
+POST /api/auth/reset-password
+```
+
+**Request Body**:
+```json
+{
+  "token": "reset-token-here",
+  "password": "NewPassword123",
+  "password_confirmation": "NewPassword123"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "message": "Password has been reset successfully. You can now login with your new password."
 }
 ```
 

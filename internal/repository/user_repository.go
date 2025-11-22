@@ -147,6 +147,12 @@ func (r *UserRepository) GetRoleIDByName(name string) (uint64, error) {
 	return roleID, nil
 }
 
+func (r *UserRepository) UpdatePassword(userID uint64, hashedPassword string) error {
+	query := `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?`
+	_, err := r.db.Exec(query, hashedPassword, userID)
+	return err
+}
+
 func TimePtr(t time.Time) *time.Time {
 	return &t
 }

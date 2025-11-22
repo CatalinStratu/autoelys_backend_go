@@ -5,11 +5,13 @@ import (
 	"autoelys_backend/internal/handlers"
 	"autoelys_backend/internal/middleware"
 	"autoelys_backend/internal/repository"
+	"autoelys_backend/internal/services"
 	"autoelys_backend/internal/validation"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
@@ -63,11 +65,22 @@ func main() {
 	}
 
 	userRepo := repository.NewUserRepository(db)
-	authHandler := handlers.NewAuthHandler(userRepo, validate)
+	passwordRepo := repository.NewPasswordResetRepository(db)
+	emailService := services.NewEmailService()
+	authHandler := handlers.NewAuthHandler(userRepo, passwordRepo, emailService, validate)
 
 	rateLimiter := middleware.NewRateLimiter(10, 5)
 
 	router := gin.Default()
+
+	// CORS configuration
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "Hello World"})
@@ -80,6 +93,9 @@ func main() {
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", rateLimiter.Limit(), authHandler.Register)
+			auth.POST("/login", rateLimiter.Limit(), authHandler.Login)
+			auth.POST("/forgot-password", rateLimiter.Limit(), authHandler.ForgotPassword)
+			auth.POST("/reset-password", rateLimiter.Limit(), authHandler.ResetPassword)
 		}
 	}
 
