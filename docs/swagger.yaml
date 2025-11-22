@@ -122,6 +122,15 @@ definitions:
       last_name:
         example: Doe
         type: string
+      uuid:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
+  handlers.UserProfileResponse:
+    description: User profile response
+    properties:
+      user:
+        $ref: '#/definitions/handlers.UserData'
     type: object
 host: localhost:8080
 info:
@@ -208,6 +217,33 @@ paths:
       summary: Login user
       tags:
       - Authentication
+  /api/auth/me:
+    get:
+      description: Get the authenticated user's profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            $ref: '#/definitions/handlers.UserProfileResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - Authentication
   /api/auth/register:
     post:
       consumes:
@@ -285,7 +321,6 @@ schemes:
 - https
 securityDefinitions:
   BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
     in: header
     name: Authorization
     type: apiKey

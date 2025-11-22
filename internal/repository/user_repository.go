@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var ErrDuplicateEmail = errors.New("email already exists")
@@ -21,14 +23,16 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) Create(user *models.User) error {
 	user.Email = strings.ToLower(user.Email)
+	user.UUID = uuid.New().String()
 
 	query := `
-		INSERT INTO users (role_id, first_name, last_name, email, phone, password_hash, active, accepted_terms_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO users (uuid, role_id, first_name, last_name, email, phone, password_hash, active, accepted_terms_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := r.db.Exec(
 		query,
+		user.UUID,
 		user.RoleID,
 		user.FirstName,
 		user.LastName,
@@ -59,7 +63,7 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	email = strings.ToLower(email)
 
 	query := `
-		SELECT id, role_id, first_name, last_name, email, phone, password_hash, active, accepted_terms_at, created_at, updated_at
+		SELECT id, uuid, role_id, first_name, last_name, email, phone, password_hash, active, accepted_terms_at, created_at, updated_at
 		FROM users
 		WHERE email = ?
 	`
@@ -67,6 +71,7 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	user := &models.User{}
 	err := r.db.QueryRow(query, email).Scan(
 		&user.ID,
+		&user.UUID,
 		&user.RoleID,
 		&user.FirstName,
 		&user.LastName,
@@ -91,7 +96,7 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 
 func (r *UserRepository) FindByID(id uint64) (*models.User, error) {
 	query := `
-		SELECT id, role_id, first_name, last_name, email, phone, password_hash, active, accepted_terms_at, created_at, updated_at
+		SELECT id, uuid, role_id, first_name, last_name, email, phone, password_hash, active, accepted_terms_at, created_at, updated_at
 		FROM users
 		WHERE id = ?
 	`
@@ -99,6 +104,7 @@ func (r *UserRepository) FindByID(id uint64) (*models.User, error) {
 	user := &models.User{}
 	err := r.db.QueryRow(query, id).Scan(
 		&user.ID,
+		&user.UUID,
 		&user.RoleID,
 		&user.FirstName,
 		&user.LastName,

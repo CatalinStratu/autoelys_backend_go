@@ -39,7 +39,6 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	// Load .env file
@@ -96,6 +95,7 @@ func main() {
 			auth.POST("/login", rateLimiter.Limit(), authHandler.Login)
 			auth.POST("/forgot-password", rateLimiter.Limit(), authHandler.ForgotPassword)
 			auth.POST("/reset-password", rateLimiter.Limit(), authHandler.ResetPassword)
+			auth.GET("/me", middleware.AuthRequired(), authHandler.GetMe)
 		}
 	}
 

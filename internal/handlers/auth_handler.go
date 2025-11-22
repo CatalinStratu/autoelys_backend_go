@@ -59,6 +59,7 @@ type RegisterResponse struct {
 // @Description User data
 type UserData struct {
 	ID        uint64 `json:"id" example:"1"`
+	UUID      string `json:"uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
 	FirstName string `json:"first_name" example:"John"`
 	LastName  string `json:"last_name" example:"Doe"`
 	Email     string `json:"email" example:"john@example.com"`
@@ -97,6 +98,12 @@ type ResetPasswordRequest struct {
 	Token                string `json:"token" validate:"required" example:"a1b2c3d4e5f6..."`
 	Password             string `json:"password" validate:"required,strong_password" example:"NewPassword123"`
 	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password" example:"NewPassword123"`
+}
+
+// UserProfileResponse represents the user profile response
+// @Description User profile response
+type UserProfileResponse struct {
+	User UserData `json:"user"`
 }
 
 // Register godoc
@@ -185,6 +192,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Message: "Account created successfully.",
 		User: UserData{
 			ID:        user.ID,
+			UUID:      user.UUID,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
@@ -249,7 +257,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response := LoginResponse{
 		Message: "Login successful.",
 		User: UserData{
-			ID:        user.ID,
+			UUID:      user.UUID,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			Email:     user.Email,
@@ -379,6 +387,45 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Password has been reset successfully. You can now login with your new password.",
 	})
+}
+
+// GetMe godoc
+// @Summary Get current user profile
+// @Description Get the authenticated user's profile information
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} UserProfileResponse "User profile"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 404 {object} map[string]string "User not found"
+// @Router /api/auth/me [get]
+func (h *AuthHandler) GetMe(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	user, err := h.userRepo.FindByID(userID.(uint64))
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	response := UserProfileResponse{
+		User: UserData{
+			UUID:      user.UUID,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Email:     user.Email,
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func stringPtr(s string) *string {

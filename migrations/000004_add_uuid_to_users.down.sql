@@ -1,0 +1,2 @@
+ALTER TABLE users DROP INDEX idx_uuid;
+ALTER TABLE users DROP COLUMN uuid;
