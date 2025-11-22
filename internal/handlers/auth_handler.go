@@ -5,9 +5,9 @@ import (
 	"autoelys_backend/internal/models"
 	"autoelys_backend/internal/repository"
 	"autoelys_backend/internal/services"
+	"autoelys_backend/internal/utils"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -141,7 +141,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		errors := formatValidationErrors(err.(validator.ValidationErrors))
+		errors := utils.FormatValidationErrorsArray(err.(validator.ValidationErrors))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": errors})
 		return
 	}
@@ -238,7 +238,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		errors := formatValidationErrors(err.(validator.ValidationErrors))
+		errors := utils.FormatValidationErrorsArray(err.(validator.ValidationErrors))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": errors})
 		return
 	}
@@ -302,7 +302,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		validationErrors := formatValidationErrors(err.(validator.ValidationErrors))
+		validationErrors := utils.FormatValidationErrorsArray(err.(validator.ValidationErrors))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": validationErrors})
 		return
 	}
@@ -359,7 +359,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		validationErrors := formatValidationErrors(err.(validator.ValidationErrors))
+		validationErrors := utils.FormatValidationErrorsArray(err.(validator.ValidationErrors))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": validationErrors})
 		return
 	}
@@ -470,7 +470,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	if err := h.validator.Struct(req); err != nil {
-		validationErrors := formatValidationErrors(err.(validator.ValidationErrors))
+		validationErrors := utils.FormatValidationErrorsArray(err.(validator.ValidationErrors))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"errors": validationErrors})
 		return
 	}
@@ -520,49 +520,3 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-func formatValidationErrors(errs validator.ValidationErrors) map[string][]string {
-	errors := make(map[string][]string)
-
-	for _, err := range errs {
-		fieldName := toSnakeCase(err.Field())
-
-		var message string
-		switch err.Tag() {
-		case "required":
-			message = "This field is required."
-		case "min":
-			message = "Must be at least " + err.Param() + " characters."
-		case "email":
-			message = "Must be a valid email address."
-		case "phone_e164":
-			message = "Must be a valid phone number in E.164 format (e.g., +407xxxxxxxx)."
-		case "strong_password":
-			message = "Must be at least 8 characters long and contain both letters and digits."
-		case "eqfield":
-			message = "Passwords do not match."
-		case "eq":
-			if err.Field() == "AcceptedTerms" {
-				message = "You must accept the terms and conditions."
-			} else {
-				message = "Invalid value."
-			}
-		default:
-			message = "Invalid value for " + fieldName + "."
-		}
-
-		errors[fieldName] = append(errors[fieldName], message)
-	}
-
-	return errors
-}
-
-func toSnakeCase(s string) string {
-	var result []rune
-	for i, r := range s {
-		if i > 0 && r >= 'A' && r <= 'Z' {
-			result = append(result, '_')
-		}
-		result = append(result, r)
-	}
-	return strings.ToLower(string(result))
-}

@@ -437,6 +437,185 @@ paths:
       summary: Get automobiles by brand
       tags:
       - brands
+  /api/vehicles:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Add a new vehicle with images and all details
+      parameters:
+      - description: Vehicle title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Vehicle category
+        in: formData
+        name: category
+        required: true
+        type: string
+      - description: Vehicle description
+        in: formData
+        name: description
+        type: string
+      - description: Price
+        in: formData
+        name: price
+        required: true
+        type: number
+      - description: Currency (e.g., lei)
+        in: formData
+        name: currency
+        required: true
+        type: string
+      - description: Price negotiable
+        in: formData
+        name: negotiable
+        type: boolean
+      - description: Person type (persoana_fizica, firma)
+        in: formData
+        name: person_type
+        required: true
+        type: string
+      - description: Brand
+        in: formData
+        name: brand
+        required: true
+        type: string
+      - description: Model
+        in: formData
+        name: model
+        required: true
+        type: string
+      - description: Engine capacity (cm3)
+        in: formData
+        name: engine_capacity
+        type: integer
+      - description: Power (HP)
+        in: formData
+        name: power_hp
+        type: integer
+      - description: Fuel type
+        in: formData
+        name: fuel_type
+        required: true
+        type: string
+      - description: Body type
+        in: formData
+        name: body_type
+        required: true
+        type: string
+      - description: Kilometers
+        in: formData
+        name: kilometers
+        type: integer
+      - description: Color
+        in: formData
+        name: color
+        type: string
+      - description: Year
+        in: formData
+        name: year
+        required: true
+        type: integer
+      - description: Number of keys
+        in: formData
+        name: number_of_keys
+        type: integer
+      - description: Condition (utilizat, nou)
+        in: formData
+        name: condition
+        required: true
+        type: string
+      - description: Transmission (manuala, automata)
+        in: formData
+        name: transmission
+        required: true
+        type: string
+      - description: Steering (stanga, dreapta)
+        in: formData
+        name: steering
+        required: true
+        type: string
+      - description: Registered
+        in: formData
+        name: registered
+        type: boolean
+      - description: City
+        in: formData
+        name: city
+        required: true
+        type: string
+      - description: Contact name
+        in: formData
+        name: contact_name
+        required: true
+        type: string
+      - description: Email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Phone
+        in: formData
+        name: phone
+        type: string
+      - description: Vehicle images (max 8)
+        in: formData
+        name: images
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Vehicle created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new vehicle listing
+      tags:
+      - vehicles
+  /api/vehicles/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a vehicle with all its details and images
+      parameters:
+      - description: Vehicle ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Vehicle details
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Vehicle not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get vehicle by ID
+      tags:
+      - vehicles
 schemes:
 - http
 - https

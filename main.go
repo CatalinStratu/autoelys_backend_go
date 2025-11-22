@@ -67,9 +67,11 @@ func main() {
 	passwordRepo := repository.NewPasswordResetRepository(db)
 	brandRepo := repository.NewBrandRepository(db)
 	automobileRepo := repository.NewAutomobileRepository(db)
+	vehicleRepo := repository.NewVehicleRepository(db)
 	emailService := services.NewEmailService()
 	authHandler := handlers.NewAuthHandler(userRepo, passwordRepo, emailService, validate)
 	brandHandler := handlers.NewBrandHandler(brandRepo, automobileRepo)
+	vehicleHandler := handlers.NewVehicleHandler(vehicleRepo, validate)
 
 	rateLimiter := middleware.NewRateLimiter(10, 5)
 
@@ -90,6 +92,7 @@ func main() {
 
 	// Serve static files (logos, images, etc.)
 	router.Static("/public", "./public")
+	router.Static("/uploads", "./uploads")
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -109,6 +112,12 @@ func main() {
 		{
 			brands.GET("", brandHandler.GetAllBrands)
 			brands.GET("/:id/automobiles", brandHandler.GetAutomobilesByBrand)
+		}
+
+		vehicles := api.Group("/vehicles")
+		{
+			vehicles.POST("", vehicleHandler.CreateVehicle)
+			vehicles.GET("/:id", vehicleHandler.GetVehicle)
 		}
 	}
 

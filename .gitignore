@@ -42,3 +42,9 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Public assets (logos, images)
+public/logos/
+
+# Uploaded files (vehicle images)
+uploads/
