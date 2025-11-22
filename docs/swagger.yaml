@@ -379,6 +379,64 @@ paths:
       summary: Reset password with token
       tags:
       - Authentication
+  /api/brands:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a list of all automobile brands
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success with brands array
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all brands
+      tags:
+      - brands
+  /api/brands/{id}/automobiles:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all automobiles for a specific brand
+      parameters:
+      - description: Brand ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success with automobiles array
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: invalid brand ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: brand not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get automobiles by brand
+      tags:
+      - brands
 schemes:
 - http
 - https

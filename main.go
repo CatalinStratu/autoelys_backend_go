@@ -65,8 +65,11 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	passwordRepo := repository.NewPasswordResetRepository(db)
+	brandRepo := repository.NewBrandRepository(db)
+	automobileRepo := repository.NewAutomobileRepository(db)
 	emailService := services.NewEmailService()
 	authHandler := handlers.NewAuthHandler(userRepo, passwordRepo, emailService, validate)
+	brandHandler := handlers.NewBrandHandler(brandRepo, automobileRepo)
 
 	rateLimiter := middleware.NewRateLimiter(10, 5)
 
@@ -85,6 +88,9 @@ func main() {
 		c.JSON(200, gin.H{"message": "Hello World"})
 	})
 
+	// Serve static files (logos, images, etc.)
+	router.Static("/public", "./public")
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	api := router.Group("/api")
@@ -97,6 +103,12 @@ func main() {
 			auth.POST("/reset-password", rateLimiter.Limit(), authHandler.ResetPassword)
 			auth.GET("/me", middleware.AuthRequired(), authHandler.GetMe)
 			auth.PUT("/me", middleware.AuthRequired(), authHandler.UpdateProfile)
+		}
+
+		brands := api.Group("/brands")
+		{
+			brands.GET("", brandHandler.GetAllBrands)
+			brands.GET("/:id/automobiles", brandHandler.GetAutomobilesByBrand)
 		}
 	}
 
