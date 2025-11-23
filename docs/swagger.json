@@ -430,9 +430,55 @@
                 }
             }
         },
-        "/api/vehicles": {
+        "/api/user/vehicles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all vehicles created by the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Get all vehicles for authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "List of user's vehicles",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "post": {
-                "description": "Add a new vehicle with images and all details",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new vehicle with images and all details. Only authenticated users can create vehicles. The vehicle will be automatically assigned to the authenticated user.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -442,11 +488,11 @@
                 "tags": [
                     "vehicles"
                 ],
-                "summary": "Create a new vehicle listing",
+                "summary": "Create a new vehicle listing (Authenticated users only)",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Vehicle title",
+                        "description": "Vehicle title (min 5, max 255 characters)",
                         "name": "title",
                         "in": "formData",
                         "required": true
@@ -466,7 +512,7 @@
                     },
                     {
                         "type": "number",
-                        "description": "Price",
+                        "description": "Price (must be greater than 0)",
                         "name": "price",
                         "in": "formData",
                         "required": true
@@ -480,7 +526,7 @@
                     },
                     {
                         "type": "boolean",
-                        "description": "Price negotiable",
+                        "description": "Price negotiable (default: false)",
                         "name": "negotiable",
                         "in": "formData"
                     },
@@ -507,26 +553,26 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Engine capacity (cm3)",
+                        "description": "Engine capacity in cm3",
                         "name": "engine_capacity",
                         "in": "formData"
                     },
                     {
                         "type": "integer",
-                        "description": "Power (HP)",
+                        "description": "Power in HP",
                         "name": "power_hp",
                         "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "Fuel type",
+                        "description": "Fuel type (benzina, motorina, electric, hibrid, gpl, hybrid_benzina, hybrid_motorina)",
                         "name": "fuel_type",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Body type",
+                        "description": "Body type (sedan, suv, break, coupe, cabrio, hatchback, pickup, van, monovolum)",
                         "name": "body_type",
                         "in": "formData",
                         "required": true
@@ -545,7 +591,7 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Year",
+                        "description": "Year (1970-2030)",
                         "name": "year",
                         "in": "formData",
                         "required": true
@@ -572,14 +618,14 @@
                     },
                     {
                         "type": "string",
-                        "description": "Steering (stanga, dreapta)",
+                        "description": "Steering position (stanga, dreapta)",
                         "name": "steering",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "boolean",
-                        "description": "Registered",
+                        "description": "Vehicle registered (default: false)",
                         "name": "registered",
                         "in": "formData"
                     },
@@ -599,20 +645,20 @@
                     },
                     {
                         "type": "string",
-                        "description": "Email",
+                        "description": "Email address (valid email format)",
                         "name": "email",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "Phone",
+                        "description": "Phone number",
                         "name": "phone",
                         "in": "formData"
                     },
                     {
                         "type": "file",
-                        "description": "Vehicle images (max 8)",
+                        "description": "Vehicle images (max 8, jpeg/png/jpg)",
                         "name": "images",
                         "in": "formData"
                     }
@@ -627,6 +673,286 @@
                     },
                     "400": {
                         "description": "Validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized - Authentication required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/user/vehicles/{uuid}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve a vehicle with all its details and images using UUID. Only accessible by vehicle owner or admin.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Get vehicle by UUID (Owner/Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vehicle details",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Not owner or admin",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update a vehicle listing using UUID",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Update vehicle by UUID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Vehicle title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Vehicle category",
+                        "name": "category",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Vehicle description",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Price",
+                        "name": "price",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Currency (e.g., lei)",
+                        "name": "currency",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Price negotiable",
+                        "name": "negotiable",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Person type (persoana_fizica, firma)",
+                        "name": "person_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Brand",
+                        "name": "brand",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Model",
+                        "name": "model",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Engine capacity (cm3)",
+                        "name": "engine_capacity",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Power (HP)",
+                        "name": "power_hp",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Fuel type",
+                        "name": "fuel_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Body type",
+                        "name": "body_type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Kilometers",
+                        "name": "kilometers",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Color",
+                        "name": "color",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of keys",
+                        "name": "number_of_keys",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Condition (utilizat, nou)",
+                        "name": "condition",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Transmission (manuala, automata)",
+                        "name": "transmission",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Steering (stanga, dreapta)",
+                        "name": "steering",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Registered",
+                        "name": "registered",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "City",
+                        "name": "city",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Contact name",
+                        "name": "contact_name",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Email",
+                        "name": "email",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Phone",
+                        "name": "phone",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Vehicle updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Not owner or admin",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Vehicle not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

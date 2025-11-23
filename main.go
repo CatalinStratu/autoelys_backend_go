@@ -116,8 +116,16 @@ func main() {
 
 		vehicles := api.Group("/vehicles")
 		{
-			vehicles.POST("", vehicleHandler.CreateVehicle)
 			vehicles.GET("/:id", vehicleHandler.GetVehicle)
+		}
+
+		userVehicles := api.Group("/user/vehicles")
+		userVehicles.Use(middleware.AuthRequired())
+		{
+			userVehicles.GET("", vehicleHandler.GetUserVehicles)
+			userVehicles.POST("", vehicleHandler.CreateVehicle)
+			userVehicles.GET("/:uuid", vehicleHandler.GetVehicleByUUID)
+			userVehicles.PUT("/:uuid", vehicleHandler.UpdateVehicle)
 		}
 	}
 

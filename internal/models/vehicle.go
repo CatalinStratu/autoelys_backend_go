@@ -39,9 +39,33 @@ type Steering struct {
 	DisplayName string `json:"display_name"`
 }
 
+// Vehicle status constants
+const (
+	VehicleStatusActive   uint8 = 1
+	VehicleStatusInactive uint8 = 2
+	VehicleStatusBanned   uint8 = 3
+)
+
+// GetStatusName returns the string representation of a vehicle status
+func GetStatusName(status uint8) string {
+	switch status {
+	case VehicleStatusActive:
+		return "active"
+	case VehicleStatusInactive:
+		return "inactive"
+	case VehicleStatusBanned:
+		return "banned"
+	default:
+		return "unknown"
+	}
+}
+
 // Vehicle model
 type Vehicle struct {
-	ID             uint64    `json:"id"`
+	ID             uint64    `json:"id,omitempty"`
+	UserID         uint64    `json:"user_id,omitempty"`
+	Status         uint8     `json:"status"` // 1=active, 2=inactive, 3=banned
+	StatusName     string    `json:"status_name,omitempty"`
 	UUID           string    `json:"uuid"`
 	Slug           string    `json:"slug"`
 	Title          string    `json:"title"`
