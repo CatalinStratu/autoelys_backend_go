@@ -970,9 +970,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/vehicles/{id}": {
+        "/api/vehicles": {
             "get": {
-                "description": "Retrieve a vehicle with all its details and images",
+                "description": "Public endpoint to retrieve all active vehicles with optional search and filtering. No authentication required. Perfect for browsing and searching the vehicle marketplace.",
                 "consumes": [
                     "application/json"
                 ],
@@ -982,19 +982,143 @@ const docTemplate = `{
                 "tags": [
                     "vehicles"
                 ],
-                "summary": "Get vehicle by ID",
+                "summary": "Get all vehicles with search and filters (Public)",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Search by title, brand, model, or description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by brand name",
+                        "name": "brand",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by model name",
+                        "name": "model",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by fuel type (benzina, motorina, electric, hibrid, gpl, hybrid_benzina, hybrid_motorina)",
+                        "name": "fuel_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by body type (sedan, suv, break, coupe, cabrio, hatchback, pickup, van, monovolum)",
+                        "name": "body_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by transmission (manuala, automata)",
+                        "name": "transmission",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by condition (utilizat, nou)",
+                        "name": "condition",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum price",
+                        "name": "min_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum price",
+                        "name": "max_price",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
-                        "description": "Vehicle ID",
-                        "name": "id",
+                        "description": "Minimum year",
+                        "name": "min_year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum year",
+                        "name": "max_year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by city",
+                        "name": "city",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of vehicles with pagination",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/vehicles/{slug}": {
+            "get": {
+                "description": "Public endpoint to retrieve detailed information about a specific vehicle using its SEO-friendly slug. Returns all vehicle details, images, and specifications. No authentication required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Get vehicle by slug (Public)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Vehicle slug (SEO-friendly URL identifier)",
+                        "name": "slug",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Vehicle details",
+                        "description": "Vehicle details with complete information",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

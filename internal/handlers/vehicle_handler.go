@@ -343,29 +343,144 @@ func (h *VehicleHandler) GetUserVehicles(c *gin.Context) {
 	})
 }
 
-// GetVehicle godoc
-// @Summary Get vehicle by ID
-// @Description Retrieve a vehicle with all its details and images
+// GetAllVehicles godoc
+// @Summary Get all vehicles with search and filters (Public)
+// @Description Public endpoint to retrieve all active vehicles with optional search and filtering. No authentication required. Perfect for browsing and searching the vehicle marketplace.
 // @Tags vehicles
 // @Accept json
 // @Produce json
-// @Param id path int true "Vehicle ID"
-// @Success 200 {object} map[string]interface{} "Vehicle details"
-// @Failure 404 {object} map[string]interface{} "Vehicle not found"
+// @Param search query string false "Search by title, brand, model, or description"
+// @Param brand query string false "Filter by brand name"
+// @Param model query string false "Filter by model name"
+// @Param fuel_type query string false "Filter by fuel type (benzina, motorina, electric, hibrid, gpl, hybrid_benzina, hybrid_motorina)"
+// @Param body_type query string false "Filter by body type (sedan, suv, break, coupe, cabrio, hatchback, pickup, van, monovolum)"
+// @Param transmission query string false "Filter by transmission (manuala, automata)"
+// @Param condition query string false "Filter by condition (utilizat, nou)"
+// @Param min_price query number false "Minimum price"
+// @Param max_price query number false "Maximum price"
+// @Param min_year query int false "Minimum year"
+// @Param max_year query int false "Maximum year"
+// @Param city query string false "Filter by city"
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 20, max: 100)"
+// @Success 200 {object} map[string]interface{} "List of vehicles with pagination"
+// @Failure 400 {object} map[string]interface{} "Invalid query parameters"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /api/vehicles/{uuid} [get]
-func (h *VehicleHandler) GetVehicle(c *gin.Context) {
-	uuidStr := c.Param("uuid")
-	uuid, err := strconv.ParseUint(uuidStr, 10, 64)
+// @Router /api/vehicles [get]
+func (h *VehicleHandler) GetAllVehicles(c *gin.Context) {
+	// Parse query parameters
+	search := c.DefaultQuery("search", "")
+	brand := c.DefaultQuery("brand", "")
+	model := c.DefaultQuery("model", "")
+	fuelType := c.DefaultQuery("fuel_type", "")
+	bodyType := c.DefaultQuery("body_type", "")
+	transmission := c.DefaultQuery("transmission", "")
+	condition := c.DefaultQuery("condition", "")
+	city := c.DefaultQuery("city", "")
+
+	var minPrice, maxPrice float64
+	if minPriceStr := c.Query("min_price"); minPriceStr != "" {
+		if val, err := strconv.ParseFloat(minPriceStr, 64); err == nil {
+			minPrice = val
+		}
+	}
+	if maxPriceStr := c.Query("max_price"); maxPriceStr != "" {
+		if val, err := strconv.ParseFloat(maxPriceStr, 64); err == nil {
+			maxPrice = val
+		}
+	}
+
+	var minYear, maxYear int
+	if minYearStr := c.Query("min_year"); minYearStr != "" {
+		if val, err := strconv.Atoi(minYearStr); err == nil {
+			minYear = val
+		}
+	}
+	if maxYearStr := c.Query("max_year"); maxYearStr != "" {
+		if val, err := strconv.Atoi(maxYearStr); err == nil {
+			maxYear = val
+		}
+	}
+
+	// Parse pagination parameters
+	page := 1
+	if pageStr := c.DefaultQuery("page", "1"); pageStr != "" {
+		if val, err := strconv.Atoi(pageStr); err == nil && val > 0 {
+			page = val
+		}
+	}
+
+	limit := 20
+	if limitStr := c.DefaultQuery("limit", "20"); limitStr != "" {
+		if val, err := strconv.Atoi(limitStr); err == nil && val > 0 {
+			limit = val
+			if limit > 100 {
+				limit = 100 // Max limit
+			}
+		}
+	}
+
+	offset := (page - 1) * limit
+
+	// Build search parameters
+	params := repository.VehicleSearchParams{
+		Search:       search,
+		Brand:        brand,
+		Model:        model,
+		FuelType:     fuelType,
+		BodyType:     bodyType,
+		Transmission: transmission,
+		Condition:    condition,
+		MinPrice:     minPrice,
+		MaxPrice:     maxPrice,
+		MinYear:      minYear,
+		MaxYear:      maxYear,
+		City:         city,
+		Limit:        limit,
+		Offset:       offset,
+	}
+
+	// Get vehicles from repository
+	vehicles, total, err := h.vehicleRepo.GetAll(params)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
-			"message": "Invalid vehicle ID",
+			"message": "Failed to retrieve vehicles",
+			"error":   err.Error(),
 		})
 		return
 	}
 
-	vehicle, err := h.vehicleRepo.GetByID(uuid)
+	// Calculate pagination info
+	totalPages := (total + limit - 1) / limit
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   vehicles,
+		"pagination": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+		},
+	})
+}
+
+// GetVehicle godoc
+// @Summary Get vehicle by slug (Public)
+// @Description Public endpoint to retrieve detailed information about a specific vehicle using its SEO-friendly slug. Returns all vehicle details, images, and specifications. No authentication required.
+// @Tags vehicles
+// @Accept json
+// @Produce json
+// @Param slug path string true "Vehicle slug (SEO-friendly URL identifier)"
+// @Success 200 {object} map[string]interface{} "Vehicle details with complete information"
+// @Failure 404 {object} map[string]interface{} "Vehicle not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/vehicles/{slug} [get]
+func (h *VehicleHandler) GetVehicle(c *gin.Context) {
+	slug := c.Param("slug")
+
+	vehicle, err := h.vehicleRepo.GetBySlug(slug)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",

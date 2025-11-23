@@ -116,7 +116,8 @@ func main() {
 
 		vehicles := api.Group("/vehicles")
 		{
-			vehicles.GET("/:id", vehicleHandler.GetVehicle)
+			vehicles.GET("", vehicleHandler.GetAllVehicles)
+			vehicles.GET("/:slug", vehicleHandler.GetVehicle)
 		}
 
 		userVehicles := api.Group("/user/vehicles")

@@ -805,22 +805,111 @@ paths:
       summary: Update vehicle by UUID
       tags:
       - vehicles
-  /api/vehicles/{id}:
+  /api/vehicles:
     get:
       consumes:
       - application/json
-      description: Retrieve a vehicle with all its details and images
+      description: Public endpoint to retrieve all active vehicles with optional search
+        and filtering. No authentication required. Perfect for browsing and searching
+        the vehicle marketplace.
       parameters:
-      - description: Vehicle ID
-        in: path
-        name: id
-        required: true
+      - description: Search by title, brand, model, or description
+        in: query
+        name: search
+        type: string
+      - description: Filter by brand name
+        in: query
+        name: brand
+        type: string
+      - description: Filter by model name
+        in: query
+        name: model
+        type: string
+      - description: Filter by fuel type (benzina, motorina, electric, hibrid, gpl,
+          hybrid_benzina, hybrid_motorina)
+        in: query
+        name: fuel_type
+        type: string
+      - description: Filter by body type (sedan, suv, break, coupe, cabrio, hatchback,
+          pickup, van, monovolum)
+        in: query
+        name: body_type
+        type: string
+      - description: Filter by transmission (manuala, automata)
+        in: query
+        name: transmission
+        type: string
+      - description: Filter by condition (utilizat, nou)
+        in: query
+        name: condition
+        type: string
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Minimum year
+        in: query
+        name: min_year
+        type: integer
+      - description: Maximum year
+        in: query
+        name: max_year
+        type: integer
+      - description: Filter by city
+        in: query
+        name: city
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 20, max: 100)'
+        in: query
+        name: limit
         type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: Vehicle details
+          description: List of vehicles with pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid query parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all vehicles with search and filters (Public)
+      tags:
+      - vehicles
+  /api/vehicles/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Public endpoint to retrieve detailed information about a specific
+        vehicle using its SEO-friendly slug. Returns all vehicle details, images,
+        and specifications. No authentication required.
+      parameters:
+      - description: Vehicle slug (SEO-friendly URL identifier)
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Vehicle details with complete information
           schema:
             additionalProperties: true
             type: object
@@ -834,7 +923,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get vehicle by ID
+      summary: Get vehicle by slug (Public)
       tags:
       - vehicles
 schemes:
