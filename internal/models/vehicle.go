@@ -66,6 +66,8 @@ type Vehicle struct {
 	UserID         uint64    `json:"user_id,omitempty"`
 	Status         uint8     `json:"status"` // 1=active, 2=inactive, 3=banned
 	StatusName     string    `json:"status_name,omitempty"`
+	Recommended    bool      `json:"recommended"`
+	FeaturedImage  *string   `json:"featured_image,omitempty"`
 	UUID           string    `json:"uuid"`
 	Slug           string    `json:"slug"`
 	Title          string    `json:"title"`

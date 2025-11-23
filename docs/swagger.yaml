@@ -590,6 +590,10 @@ paths:
         in: formData
         name: phone
         type: string
+      - description: 'Index of the image to use as featured (0-based, default: 0)'
+        in: formData
+        name: featured_image_index
+        type: integer
       - description: Vehicle images (max 8, jpeg/png/jpg)
         in: formData
         name: images
@@ -924,6 +928,34 @@ paths:
             additionalProperties: true
             type: object
       summary: Get vehicle by slug (Public)
+      tags:
+      - vehicles
+  /api/vehicles/recommended:
+    get:
+      consumes:
+      - application/json
+      description: Public endpoint to retrieve a curated list of recommended vehicles.
+        Returns recent, high-quality vehicles with images. Perfect for homepage or
+        featured sections. No authentication required.
+      parameters:
+      - description: 'Number of vehicles to return (default: 10, max: 50)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of recommended vehicles
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get recommended vehicles (Public)
       tags:
       - vehicles
 schemes:

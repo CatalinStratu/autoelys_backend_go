@@ -50,6 +50,13 @@ func (r *VehicleRepository) GetSteeringID(name string) (uint8, error) {
 	return id, err
 }
 
+// SetFeaturedImage updates the featured image for a vehicle
+func (r *VehicleRepository) SetFeaturedImage(uuid string, imagePath string) error {
+	query := `UPDATE vehicles SET featured_image = ? WHERE uuid = ?`
+	_, err := r.db.Exec(query, imagePath, uuid)
+	return err
+}
+
 // Create inserts a new vehicle and returns the created vehicle with ID
 func (r *VehicleRepository) Create(vehicle *models.Vehicle) (*models.Vehicle, error) {
 	// Default status to active if not set
@@ -58,16 +65,18 @@ func (r *VehicleRepository) Create(vehicle *models.Vehicle) (*models.Vehicle, er
 	}
 
 	query := `INSERT INTO vehicles (
-		user_id, status, uuid, slug, title, category, description, price, currency, negotiable,
+		user_id, status, recommended, featured_image, uuid, slug, title, category, description, price, currency, negotiable,
 		person_type_id, brand, model, engine_capacity, power_hp,
 		fuel_type_id, body_type_id, kilometers, color, year, number_of_keys,
 		condition_id, transmission_id, steering_id, registered,
 		city, contact_name, email, phone
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 	result, err := r.db.Exec(query,
 		vehicle.UserID,
 		vehicle.Status,
+		vehicle.Recommended,
+		vehicle.FeaturedImage,
 		vehicle.UUID,
 		vehicle.Slug,
 		vehicle.Title,
@@ -120,7 +129,7 @@ func (r *VehicleRepository) CreateImage(vehicleID uint64, imageURL string) error
 // GetByID retrieves a vehicle by UUID with its images and lookup table data
 func (r *VehicleRepository) GetByID(uuid uint64) (*models.Vehicle, error) {
 	query := `SELECT
-		v.uuid, v.status, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
+		v.uuid, v.status, v.recommended, v.featured_image, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
 		v.person_type_id, pt.name as person_type_name,
 		v.brand, v.model, v.engine_capacity, v.power_hp,
 		v.fuel_type_id, ft.name as fuel_type_name,
@@ -146,6 +155,8 @@ func (r *VehicleRepository) GetByID(uuid uint64) (*models.Vehicle, error) {
 	err := r.db.QueryRow(query, uuid).Scan(
 		&vehicle.UUID,
 		&vehicle.Status,
+		&vehicle.Recommended,
+		&vehicle.FeaturedImage,
 		&vehicle.Slug,
 		&vehicle.Title,
 		&vehicle.Category,
@@ -211,7 +222,7 @@ func (r *VehicleRepository) GetByID(uuid uint64) (*models.Vehicle, error) {
 // GetBySlug retrieves a vehicle by slug with its images and lookup table data
 func (r *VehicleRepository) GetBySlug(slug string) (*models.Vehicle, error) {
 	query := `SELECT
-		v.id, v.user_id, v.status, v.uuid, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
+		v.id, v.user_id, v.status, v.recommended, v.featured_image, v.uuid, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
 		v.person_type_id, pt.name as person_type_name,
 		v.brand, v.model, v.engine_capacity, v.power_hp,
 		v.fuel_type_id, ft.name as fuel_type_name,
@@ -238,6 +249,8 @@ func (r *VehicleRepository) GetBySlug(slug string) (*models.Vehicle, error) {
 		&vehicle.ID,
 		&vehicle.UserID,
 		&vehicle.Status,
+		&vehicle.Recommended,
+		&vehicle.FeaturedImage,
 		&vehicle.UUID,
 		&vehicle.Slug,
 		&vehicle.Title,
@@ -304,7 +317,7 @@ func (r *VehicleRepository) GetBySlug(slug string) (*models.Vehicle, error) {
 // GetByUUID retrieves a vehicle by UUID with its images and lookup table data
 func (r *VehicleRepository) GetByUUID(uuid string) (*models.Vehicle, error) {
 	query := `SELECT
-		v.id, v.user_id, v.status, v.uuid, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
+		v.id, v.user_id, v.status, v.recommended, v.featured_image, v.uuid, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
 		v.person_type_id, pt.name as person_type_name,
 		v.brand, v.model, v.engine_capacity, v.power_hp,
 		v.fuel_type_id, ft.name as fuel_type_name,
@@ -331,6 +344,8 @@ func (r *VehicleRepository) GetByUUID(uuid string) (*models.Vehicle, error) {
 		&vehicle.ID,
 		&vehicle.UserID,
 		&vehicle.Status,
+		&vehicle.Recommended,
+		&vehicle.FeaturedImage,
 		&vehicle.UUID,
 		&vehicle.Slug,
 		&vehicle.Title,
@@ -601,7 +616,7 @@ type VehicleSearchParams struct {
 // GetAll retrieves all vehicles with optional search filters
 func (r *VehicleRepository) GetAll(params VehicleSearchParams) ([]models.Vehicle, int, error) {
 	baseQuery := `SELECT
-		v.id, v.user_id, v.status, v.uuid, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
+		v.id, v.user_id, v.status, v.recommended, v.featured_image, v.uuid, v.slug, v.title, v.category, v.price, v.currency, v.negotiable,
 		v.person_type_id, pt.name as person_type_name,
 		v.brand, v.model, v.engine_capacity, v.power_hp,
 		v.fuel_type_id, ft.name as fuel_type_name,
@@ -750,11 +765,12 @@ func (r *VehicleRepository) GetAll(params VehicleSearchParams) ([]models.Vehicle
 			&vehicle.ID,
 			&vehicle.UserID,
 			&vehicle.Status,
+			&vehicle.Recommended,
+			&vehicle.FeaturedImage,
 			&vehicle.UUID,
 			&vehicle.Slug,
 			&vehicle.Title,
 			&vehicle.Category,
-			&vehicle.Description,
 			&vehicle.Price,
 			&vehicle.Currency,
 			&vehicle.Negotiable,
@@ -813,10 +829,117 @@ func (r *VehicleRepository) GetAll(params VehicleSearchParams) ([]models.Vehicle
 	return vehicles, total, rows.Err()
 }
 
+// GetRecommended retrieves recommended vehicles (featured, recent, or popular)
+func (r *VehicleRepository) GetRecommended(limit int) ([]models.Vehicle, error) {
+	// Get recommended vehicles based on:
+	// 1. Vehicles marked as recommended
+	// 2. Active status
+	// 3. Good quality (with images)
+	query := `SELECT
+	    v.status, v.recommended, v.uuid, v.slug, v.title, v.category, v.price, v.currency, v.negotiable,
+		v.person_type_id, pt.name as person_type_name,
+		v.brand, v.model, v.engine_capacity, v.power_hp,
+		v.fuel_type_id, ft.name as fuel_type_name,
+		v.body_type_id, bt.name as body_type_name,
+		v.kilometers, v.color, v.year, v.number_of_keys,
+		v.condition_id, c.name as condition_name,
+		v.transmission_id, t.name as transmission_name,
+		v.steering_id, s.name as steering_name,
+		v.registered,
+		v.city, v.contact_name, v.email, v.phone, v.created_at, v.updated_at
+	FROM vehicles v
+	LEFT JOIN person_types pt ON v.person_type_id = pt.id
+	LEFT JOIN fuel_types ft ON v.fuel_type_id = ft.id
+	LEFT JOIN body_types bt ON v.body_type_id = bt.id
+	LEFT JOIN conditions c ON v.condition_id = c.id
+	LEFT JOIN transmissions t ON v.transmission_id = t.id
+	LEFT JOIN steerings s ON v.steering_id = s.id
+	WHERE v.status = ?
+	AND v.recommended = 1
+	AND EXISTS (SELECT 1 FROM vehicle_images WHERE vehicle_id = v.id)
+	ORDER BY v.created_at DESC
+	LIMIT ?`
+
+	rows, err := r.db.Query(query, models.VehicleStatusActive, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var vehicles []models.Vehicle
+	for rows.Next() {
+		vehicle := models.Vehicle{}
+		var personTypeName, fuelTypeName, bodyTypeName, conditionName, transmissionName, steeringName string
+
+		err := rows.Scan(
+			&vehicle.Status,
+			&vehicle.Recommended,
+			&vehicle.UUID,
+			&vehicle.Slug,
+			&vehicle.Title,
+			&vehicle.Category,
+			&vehicle.Price,
+			&vehicle.Currency,
+			&vehicle.Negotiable,
+			&vehicle.PersonTypeID,
+			&personTypeName,
+			&vehicle.Brand,
+			&vehicle.Model,
+			&vehicle.EngineCapacity,
+			&vehicle.PowerHP,
+			&vehicle.FuelTypeID,
+			&fuelTypeName,
+			&vehicle.BodyTypeID,
+			&bodyTypeName,
+			&vehicle.Kilometers,
+			&vehicle.Color,
+			&vehicle.Year,
+			&vehicle.NumberOfKeys,
+			&vehicle.ConditionID,
+			&conditionName,
+			&vehicle.TransmissionID,
+			&transmissionName,
+			&vehicle.SteeringID,
+			&steeringName,
+			&vehicle.Registered,
+			&vehicle.City,
+			&vehicle.ContactName,
+			&vehicle.Email,
+			&vehicle.Phone,
+			&vehicle.CreatedAt,
+			&vehicle.UpdatedAt,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// Set the name fields
+		vehicle.PersonType = personTypeName
+		vehicle.FuelType = fuelTypeName
+		vehicle.BodyType = bodyTypeName
+		vehicle.Condition = conditionName
+		vehicle.Transmission = transmissionName
+		vehicle.Steering = steeringName
+		vehicle.StatusName = models.GetStatusName(vehicle.Status)
+
+		// Get images for this vehicle
+		images, err := r.GetImagesByVehicleID(vehicle.ID)
+		if err != nil {
+			return nil, err
+		}
+		vehicle.Images = images
+
+		vehicles = append(vehicles, vehicle)
+	}
+
+	return vehicles, rows.Err()
+}
+
 // GetByUserID retrieves all vehicles for a specific user
 func (r *VehicleRepository) GetByUserID(userID uint64) ([]models.Vehicle, error) {
 	query := `SELECT
-		v.id, v.user_id, v.status, v.uuid, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
+		v.id, v.user_id, v.status, v.recommended, v.featured_image, v.uuid, v.slug, v.title, v.category, v.description, v.price, v.currency, v.negotiable,
 		v.person_type_id, pt.name as person_type_name,
 		v.brand, v.model, v.engine_capacity, v.power_hp,
 		v.fuel_type_id, ft.name as fuel_type_name,
@@ -852,6 +975,8 @@ func (r *VehicleRepository) GetByUserID(userID uint64) ([]models.Vehicle, error)
 			&vehicle.ID,
 			&vehicle.UserID,
 			&vehicle.Status,
+			&vehicle.Recommended,
+			&vehicle.FeaturedImage,
 			&vehicle.UUID,
 			&vehicle.Slug,
 			&vehicle.Title,

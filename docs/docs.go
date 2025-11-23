@@ -659,6 +659,12 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "integer",
+                        "description": "Index of the image to use as featured (0-based, default: 0)",
+                        "name": "featured_image_index",
+                        "in": "formData"
+                    },
+                    {
                         "type": "file",
                         "description": "Vehicle images (max 8, jpeg/png/jpg)",
                         "name": "images",
@@ -1079,6 +1085,45 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid query parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/vehicles/recommended": {
+            "get": {
+                "description": "Public endpoint to retrieve a curated list of recommended vehicles. Returns recent, high-quality vehicles with images. Perfect for homepage or featured sections. No authentication required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "vehicles"
+                ],
+                "summary": "Get recommended vehicles (Public)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of vehicles to return (default: 10, max: 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of recommended vehicles",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

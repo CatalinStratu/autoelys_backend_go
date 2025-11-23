@@ -86,6 +86,7 @@ type CreateVehicleRequest struct {
 // @Param contact_name formData string true "Contact name"
 // @Param email formData string true "Email address (valid email format)"
 // @Param phone formData string false "Phone number"
+// @Param featured_image_index formData int false "Index of the image to use as featured (0-based, default: 0)"
 // @Param images formData file false "Vehicle images (max 8, jpeg/png/jpg)"
 // @Success 201 {object} map[string]interface{} "Vehicle created successfully"
 // @Failure 400 {object} map[string]interface{} "Validation error"
@@ -277,7 +278,15 @@ func (h *VehicleHandler) CreateVehicle(c *gin.Context) {
 		return
 	}
 
-	// Save images to database
+	// Save images to database and set featured image
+	var featuredImagePath string
+	featuredImageIndex := 0
+	if featuredIndexStr := c.PostForm("featured_image_index"); featuredIndexStr != "" {
+		if idx, err := strconv.Atoi(featuredIndexStr); err == nil && idx >= 0 && idx < len(imagePaths) {
+			featuredImageIndex = idx
+		}
+	}
+
 	for _, imagePath := range imagePaths {
 		if err := h.vehicleRepo.CreateImage(createdVehicle.ID, imagePath); err != nil {
 			// Log error but continue - vehicle is already created
@@ -287,6 +296,14 @@ func (h *VehicleHandler) CreateVehicle(c *gin.Context) {
 				"error":   err.Error(),
 			})
 			return
+		}
+	}
+
+	// Set featured image (default to first image if available)
+	if len(imagePaths) > 0 {
+		featuredImagePath = imagePaths[featuredImageIndex]
+		if err := h.vehicleRepo.SetFeaturedImage(createdVehicle.UUID, featuredImagePath); err != nil {
+			// Log error but continue - not critical
 		}
 	}
 
@@ -331,6 +348,46 @@ func (h *VehicleHandler) GetUserVehicles(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "error",
 			"message": "Failed to retrieve vehicles",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"count":  len(vehicles),
+		"data":   vehicles,
+	})
+}
+
+// GetRecommendedVehicles godoc
+// @Summary Get recommended vehicles (Public)
+// @Description Public endpoint to retrieve a curated list of recommended vehicles. Returns recent, high-quality vehicles with images. Perfect for homepage or featured sections. No authentication required.
+// @Tags vehicles
+// @Accept json
+// @Produce json
+// @Param limit query int false "Number of vehicles to return (default: 10, max: 50)"
+// @Success 200 {object} map[string]interface{} "List of recommended vehicles"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/vehicles/recommended [get]
+func (h *VehicleHandler) GetRecommendedVehicles(c *gin.Context) {
+	// Parse limit parameter
+	limit := 10
+	if limitStr := c.DefaultQuery("limit", "10"); limitStr != "" {
+		if val, err := strconv.Atoi(limitStr); err == nil && val > 0 {
+			limit = val
+			if limit > 50 {
+				limit = 50 // Max limit
+			}
+		}
+	}
+
+	// Get recommended vehicles from repository
+	vehicles, err := h.vehicleRepo.GetRecommended(limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": "Failed to retrieve recommended vehicles",
 			"error":   err.Error(),
 		})
 		return
