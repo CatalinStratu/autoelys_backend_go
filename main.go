@@ -68,10 +68,13 @@ func main() {
 	brandRepo := repository.NewBrandRepository(db)
 	automobileRepo := repository.NewAutomobileRepository(db)
 	vehicleRepo := repository.NewVehicleRepository(db)
+	serviceRepo := repository.NewServiceRepository(db)
 	emailService := services.NewEmailService()
 	authHandler := handlers.NewAuthHandler(userRepo, passwordRepo, emailService, validate)
 	brandHandler := handlers.NewBrandHandler(brandRepo, automobileRepo)
 	vehicleHandler := handlers.NewVehicleHandler(vehicleRepo, validate)
+	adminHandler := handlers.NewAdminHandler(userRepo)
+	serviceHandler := handlers.NewServiceHandler(serviceRepo)
 
 	rateLimiter := middleware.NewRateLimiter(10, 5)
 
@@ -129,6 +132,23 @@ func main() {
 			userVehicles.GET("/:uuid", vehicleHandler.GetVehicleByUUID)
 			userVehicles.PUT("/:uuid", vehicleHandler.UpdateVehicle)
 		}
+
+		admin := api.Group("/admin")
+		admin.Use(middleware.AuthRequired(), middleware.AdminRequired())
+		{
+			admin.GET("/users", adminHandler.GetAllUsers)
+			admin.PUT("/users/:uuid", adminHandler.UpdateUser)
+			admin.DELETE("/users/:uuid", adminHandler.DeleteUser)
+
+			admin.GET("/services", serviceHandler.GetAllServices)
+			admin.POST("/services", serviceHandler.CreateService)
+			admin.GET("/services/:uuid", serviceHandler.GetService)
+			admin.PUT("/services/:uuid", serviceHandler.UpdateService)
+			admin.DELETE("/services/:uuid", serviceHandler.DeleteService)
+		}
+
+		// Public services endpoint
+		api.GET("/services", serviceHandler.GetPublicServices)
 	}
 
 	port := os.Getenv("PORT")
